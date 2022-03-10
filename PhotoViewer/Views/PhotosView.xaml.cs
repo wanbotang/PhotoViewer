@@ -13,14 +13,14 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace PhotoViewer
+namespace PhotoViewer.Views
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// Interaction logic for PhotosView.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class PhotosView : UserControl
     {
-        public MainWindow()
+        public PhotosView()
         {
             InitializeComponent();
         }
