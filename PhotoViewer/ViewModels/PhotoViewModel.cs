@@ -1,32 +1,20 @@
-﻿using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using PhotoViewer.Models;
+using System;
 using System.Windows.Media.Imaging;
 
-namespace PhotoViewer
+namespace PhotoViewer.ViewModels
 {
-    public class PhotoViewModel : INotifyPropertyChanged
+    public class PhotoViewModel : ViewModelBase
     {
-        private readonly Uri _uriSource;
-        private string? _name;
+        private readonly Photo _photo;
         private BitmapImage? _thumbnail;
 
-        public PhotoViewModel(Uri uriSource)
+        public PhotoViewModel(Models.Photo photo)
         {
-            _uriSource = uriSource;
+            _photo = photo;
         }
 
-        public Uri UriSource => _uriSource;
-
-        public string Name
-        {
-            get => _name ?? _uriSource.ToString();
-            set
-            {
-                _name = value;
-                OnPropertyChanged();
-            }
-        }
+        public Models.Photo Photo => _photo;
 
         public BitmapImage Image
         {
@@ -35,7 +23,7 @@ namespace PhotoViewer
                 BitmapImage image = new BitmapImage();
                 image.BeginInit();
                 image.CacheOption = BitmapCacheOption.OnLoad;
-                image.UriSource = _uriSource;
+                image.UriSource = _photo.UriSource;
                 image.EndInit();
                 image.Freeze();
 
@@ -49,10 +37,15 @@ namespace PhotoViewer
             {
                 if (_thumbnail == null)
                 {
-                    _thumbnail = CreateThumbnail(_uriSource);
+                    _thumbnail = CreateThumbnail(_photo.UriSource);
                 }
 
                 return _thumbnail;
+            }
+            set
+            {
+                _thumbnail = value;
+                OnPropertyChanged();
             }
         }
 
@@ -70,13 +63,6 @@ namespace PhotoViewer
             return image;
         }
 
-        public override string ToString() => Name;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
+        public override string ToString() => Photo.ToString();
     }
 }

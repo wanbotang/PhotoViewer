@@ -1,34 +1,49 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
+﻿using PhotoViewer.Services;
+using System;
 using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
 
-namespace PhotoViewer
+namespace PhotoViewer.ViewModels
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public class MainWindowViewModel : ViewModelBase
     {
-        public static readonly string[] SupportedImageFileExtensions =
-        {
-            ".jpg",
-            ".jpeg",
-            ".png",
-            ".bmp"
-        };
-
         private string? _photosFolderPath;
-        private PhotoViewModel? _selectedPhoto;
+        private IPageViewModel? _currentPageViewModel;
 
-        public MainWindowViewModel() :
-            this(null)
-        { }
-
-        public MainWindowViewModel(string? photosFolderPath)
+        public MainWindowViewModel(IPhotoService photoService, string? path = null)
         {
-            _photosFolderPath = photosFolderPath;
-            Load();
+            PhotoService = photoService;
+            Photos = new AsyncObservableCollection<PhotoViewModel>();
+
+            // The file name is from the command line arguments. 
+            string? fileName = null;
+            if (path != null)
+            {
+                if (File.Exists(path))
+                {
+                    fileName = path;
+                    _photosFolderPath = Path.GetDirectoryName(path);
+                }
+                else if (Directory.Exists(path))
+                {
+                    _photosFolderPath = path;
+                }
+            }
+
+            LoadPhotos();
+            if (fileName != null)
+            {
+                Uri uri = new Uri(fileName);
+                Photos.Position = Photos.FindIndex(p => p.Photo.UriSource == uri);
+            }
+            else
+            {
+                Photos.MoveFirst();
+            }
+            _currentPageViewModel = new PhotosViewModel(Photos);
         }
+
+        public IPhotoService PhotoService { get; }
+        public AsyncObservableCollection<PhotoViewModel> Photos { get; }
 
         public string PhotosFolderPath
         {
@@ -39,54 +54,27 @@ namespace PhotoViewer
                 OnPropertyChanged();
 
                 // Reload the photos when the path of folder changed.
-                Load();
+                LoadPhotos();
             }
         }
 
-        public PhotoViewModel? SelectedPhoto
+        public IPageViewModel? CurrentPageViewModel
         {
-            get => _selectedPhoto;
+            get => _currentPageViewModel;
             set
             {
-                _selectedPhoto = value;
+                _currentPageViewModel = value;
                 OnPropertyChanged();
             }
         }
 
-        public ObservableCollection<PhotoViewModel> Photos { get; } = new ObservableCollection<PhotoViewModel>();
-
-        protected void Load()
+        private void LoadPhotos()
         {
             Photos.Clear();
-            SelectedPhoto = null;
-
-            var directory = new DirectoryInfo(PhotosFolderPath);
-            if (directory.Exists)
+            foreach (var photo in PhotoService.GetPhotos(PhotosFolderPath))
             {
-                foreach (var file in directory.GetFiles())
-                {
-                    if (SupportedImageFileExtensions.Contains(file.Extension, StringComparer.OrdinalIgnoreCase))
-                    {
-                        var photo = new PhotoViewModel(new Uri(file.FullName))
-                        {
-                            Name = file.Name
-                        };
-                        Photos.Add(photo);
-                    }
-                }
-
-                if (Photos.Count > 0)
-                {
-                    SelectedPhoto = Photos[0];
-                }
+                Photos.Add(new PhotoViewModel(photo));
             }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
