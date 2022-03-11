@@ -14,7 +14,7 @@
     <UserControl.Resources>
         <!--Data template for photo thumbnail-->
         <DataTemplate DataType="{x:Type viewModel:PhotoViewModel}">
-            <Image Source="{Binding Thumbnail, IsAsync=True}" />
+            <Image Source="{Binding Thumbnail}" />
         </DataTemplate>
 
         <!--Styles for previous and next buttons-->
@@ -304,10 +304,16 @@
 
     <Grid Background="Transparent">
         <!--Original image of the current photo-->
-        <Image DataContext="{Binding Photos.Current.Image}"
-               MaxHeight="{Binding Height}"
-               MaxWidth="{Binding Width}"
-               Source="{Binding}" />
+        <Image DataContext="{Binding Photos.Current}"
+               MaxHeight="{Binding ImageHeight}"
+               MaxWidth="{Binding ImageWidth}">
+            <Image.Source>
+                <PriorityBinding>
+                    <Binding Path="Image" IsAsync="True" />
+                    <Binding Path="Thumbnail" />
+                </PriorityBinding>
+            </Image.Source>
+        </Image>
 
         <!--Switch to the previous photo-->
         <Button

@@ -1,26 +1,34 @@
-﻿using PhotoViewer.Services;
+﻿using PhotoViewer.Commands;
+using PhotoViewer.Models;
+using PhotoViewer.Services;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Data;
 
 namespace PhotoViewer.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase
     {
+        private readonly object _syncLock = new();
+
+        private readonly string? _path;
         private string? _photosFolderPath;
         private IPageViewModel? _currentPageViewModel;
 
         public MainWindowViewModel(IPhotoService photoService, string? path = null)
         {
             PhotoService = photoService;
-            Photos = new AsyncObservableCollection<PhotoViewModel>();
+            Photos = new PhotoViewModelCollection();
+            BindingOperations.EnableCollectionSynchronization(Photos, _syncLock);
 
-            // The file name is from the command line arguments. 
-            string? fileName = null;
+            // The path is from the command line arguments. 
             if (path != null)
             {
                 if (File.Exists(path))
                 {
-                    fileName = path;
+                    _path = path;
                     _photosFolderPath = Path.GetDirectoryName(path);
                 }
                 else if (Directory.Exists(path))
@@ -29,34 +37,17 @@ namespace PhotoViewer.ViewModels
                 }
             }
 
-            LoadPhotos();
-            if (fileName != null)
-            {
-                Uri uri = new Uri(fileName);
-                Photos.Position = Photos.FindIndex(p => p.Photo.UriSource == uri);
-            }
-            else
-            {
-                Photos.MoveFirst();
-            }
             _currentPageViewModel = new PhotosViewModel(Photos);
+            LoadPhotosCommand = new AsyncCommand(LoadPhotosAsync);
         }
 
         public IPhotoService PhotoService { get; }
-        public AsyncObservableCollection<PhotoViewModel> Photos { get; }
+
+        public AsyncCommand LoadPhotosCommand { get; }
+        public PhotoViewModelCollection Photos { get; }
 
         public string PhotosFolderPath
-        {
-            get => _photosFolderPath ?? Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-            set
-            {
-                _photosFolderPath = value;
-                OnPropertyChanged();
-
-                // Reload the photos when the path of folder changed.
-                LoadPhotos();
-            }
-        }
+            => _photosFolderPath ?? Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
 
         public IPageViewModel? CurrentPageViewModel
         {
@@ -68,13 +59,42 @@ namespace PhotoViewer.ViewModels
             }
         }
 
-        private void LoadPhotos()
+        private Task LoadPhotosAsync(CancellationToken? cancellationToken = null)
         {
             Photos.Clear();
-            foreach (var photo in PhotoService.GetPhotos(PhotosFolderPath))
+
+            return Task.Run(() =>
             {
-                Photos.Add(new PhotoViewModel(photo));
-            }
+                Photo? current = null;
+                if (_path != null)
+                {
+                    current = PhotoService.GetPhoto(_path);
+                    if (current != null)
+                    {
+                        Photos.Current = new PhotoViewModel(current);
+                    }
+                }
+
+                int index = -1;
+                foreach (var photo in PhotoService.GetPhotos(PhotosFolderPath))
+                {
+                    index++;
+                    var pv = new PhotoViewModel(photo);
+                    lock (_syncLock) { Photos.Add(pv); }
+
+                    if (Photos.Current == null)
+                    {
+                        Photos.Position = 0;
+                    }
+                    else if (current != null)
+                    {
+                        if (photo.UriSource.Equals(current.UriSource))
+                        {
+                            Photos.Select(index);
+                        }
+                    }
+                }
+            });
         }
     }
 }

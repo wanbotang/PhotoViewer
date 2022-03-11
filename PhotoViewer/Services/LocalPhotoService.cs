@@ -15,6 +15,16 @@ namespace PhotoViewer.Services
             ".bmp"
         };
 
+        public Models.Photo? GetPhoto(string path)
+        {
+            var file = new FileInfo(path);
+            if (!file.Exists) { return null; }
+            return new Models.Photo(new Uri(file.FullName, UriKind.Absolute))
+            {
+                Name = file.Name
+            };
+        }
+
         public IEnumerable<Models.Photo> GetPhotos(string? location = null)
         {
             if (location == null)

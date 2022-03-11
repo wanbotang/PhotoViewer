@@ -12,6 +12,7 @@ namespace PhotoViewer.ViewModels
     /// </summary>
     /// <typeparam name="T">The type of elements in the collection.</typeparam>
     /// <seealso cref="https://thomaslevesque.com/2009/04/17/wpf-binding-to-an-asynchronous-collection/"/>
+    [Obsolete]
     public class AsyncObservableCollection<T> : ObservableCollection<T> where T : class
     {
         private readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;

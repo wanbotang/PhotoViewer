@@ -6,22 +6,24 @@ namespace PhotoViewer.ViewModels
     {
         private bool _isPhotoListVisible = true;
 
-        public PhotosViewModel(AsyncObservableCollection<PhotoViewModel> photos)
+        public PhotosViewModel(PhotoViewModelCollection photos)
         {
             Photos = photos;
+            
             MovePreviousCommand = new RelayCommand(
                 execute: () => Photos.MovePrevious(),
                 canExecute: () => Photos.Position > 0);
             MoveNextCommand = new RelayCommand(
                 execute: () => Photos.MoveNext(),
                 canExecute: () => Photos.Position < Photos.Count - 1);
-            TogglePhotoListVisibleCommand = new RelayCommand(() => IsPhotoListVisible = !IsPhotoListVisible);
+            TogglePhotoListVisibleCommand = new RelayCommand(execute: () => IsPhotoListVisible = !IsPhotoListVisible);
         }
 
         public RelayCommand MovePreviousCommand { get; }
         public RelayCommand MoveNextCommand { get; }
         public RelayCommand TogglePhotoListVisibleCommand { get; }
-        public AsyncObservableCollection<PhotoViewModel> Photos { get; }
+
+        public PhotoViewModelCollection Photos { get; }
 
         public bool IsPhotoListVisible
         {
